@@ -12,6 +12,7 @@ namespace world_of_tanks {
         glm::vec3 forward_;
         glm::vec3 right_;
         glm::vec3 up_;
+        float rotation_angle_OY_ = 0;
 
         glm::mat4 projection_matrix_;
 
@@ -22,10 +23,14 @@ namespace world_of_tanks {
         void MoveForward(float distance);
         void RotateFirstOY(float angle);
         void RotateThirdOY(const float angle, glm::vec3 player_tank_position);
-        void SetProjectionMatrix(float aspect_ratio, float fov_y = DEFAULT_FOV_Y, float z_near = DEFAULT_Z_NEAR,
+        void SetProjectionMatrix(float aspect_ratio = 16.0f/9.0f, float fov_y = DEFAULT_FOV_Y, float z_near = DEFAULT_Z_NEAR,
                                  float z_far = DEFAULT_Z_FAR);
 
         glm::mat4 GetViewMatrix() const;
         glm::mat4 GetProjectionMatrix() const;
+        glm::vec3 GetPosition() const { return position_; }
+        void SetPosition(const glm::vec3 position) { position_ = position; }
+        float GetRotationAngleOy() const { return rotation_angle_OY_; }
+        void SetRotationAngleOy(const float rotation_angle_oy) { rotation_angle_OY_ = rotation_angle_oy; }
     };
 }

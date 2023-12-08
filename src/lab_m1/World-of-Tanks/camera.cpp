@@ -24,6 +24,7 @@ void Camera::MoveForward(float distance) {
 }
 
 void Camera::RotateFirstOY(const float angle) {
+    
     const glm::vec4 new_forward = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0, 1, 0)) * glm::vec4(forward_, 1);
     forward_ = glm::normalize(glm::vec3(new_forward));
             

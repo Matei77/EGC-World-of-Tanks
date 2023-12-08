@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "constants.h"
+#include "utils.h"
 
 using namespace world_of_tanks;
 
@@ -104,12 +105,37 @@ void RenderingEngine::CustomRenderMesh(const Mesh *mesh, const Shader *shader, c
 
 void RenderingEngine::FrameStart() {
     // Clears the color buffer (using the previously set color) and depth buffer
-    glClearColor(0, 0, 0, 1);
+    glClearColor(SCREEN_CUT_COLOR.r, SCREEN_CUT_COLOR.g, SCREEN_CUT_COLOR.b, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    SetViewport();
+    
+    glClearColor(BACKGROUND_COLOR.r, BACKGROUND_COLOR.g, BACKGROUND_COLOR.b, 1);
+    glEnable(GL_SCISSOR_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
+}
+
+void RenderingEngine::SetViewport() {
     // Sets the screen area where to draw
+    
     const glm::ivec2 resolution = window->GetResolution();
-    glViewport(0, 0, resolution.x, resolution.y);
+    viewport_.width = resolution.x;
+    viewport_.height = resolution.y;
+    viewport_.x = 0;
+    viewport_.y = 0;
+    
+    if (resolution.x * ASPECT_HEIGHT > resolution.y * ASPECT_WIDTH) {
+        viewport_.width = resolution.y * ASPECT_WIDTH / ASPECT_HEIGHT;
+        viewport_.x = (resolution.x - viewport_.width) / 2;
+    } else if (resolution.x * ASPECT_HEIGHT < resolution.y * ASPECT_WIDTH) {
+        viewport_.height = resolution.x * ASPECT_HEIGHT / ASPECT_WIDTH;
+        viewport_.y = (resolution.y - viewport_.height) / 2;
+    }
+    
+    glViewport(viewport_.x, viewport_.y, viewport_.width, viewport_.height);
+    
+    glScissor(viewport_.x, viewport_.y, viewport_.width, viewport_.height);
 }
 
 void RenderingEngine::Update(const float delta_time_seconds) {
@@ -128,37 +154,43 @@ void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
     // Player Movement - update player tank position and rotation
     Tank &player_tank = logic_engine_.GetPlayerTank();
     if (window->KeyHold(GLFW_KEY_W)) {
-        const glm::vec3 old_position = player_tank.GetPosition();
+        glm::vec3 camera_pos = camera_->GetPosition();
         glm::vec3 position = player_tank.GetPosition();
         
         position.x -= TANK_SPEED * delta_time * sin(player_tank.GetBodyRotation());
         position.z -= TANK_SPEED * delta_time * cos(player_tank.GetBodyRotation());
         player_tank.SetPosition(position);
+
+        camera_pos.x -= TANK_SPEED * delta_time * sin(player_tank.GetBodyRotation());
+        camera_pos.z -= TANK_SPEED * delta_time * cos(player_tank.GetBodyRotation());
+        camera_->SetPosition(camera_pos);
         
-        const float distance = glm::distance(old_position,  position);
-        camera_->MoveForward(distance);
+        // const float distance = glm::distance(old_position,  position);
+        // camera_->MoveForward(distance);
     }
     
+    
     if (window->KeyHold(GLFW_KEY_S)) {
-        const glm::vec3 old_position = player_tank.GetPosition();
+        glm::vec3 camera_pos = camera_->GetPosition();
         glm::vec3 position = player_tank.GetPosition();
         
         position.x += TANK_SPEED * delta_time * sin(player_tank.GetBodyRotation());
         position.z += TANK_SPEED * delta_time * cos(player_tank.GetBodyRotation());
         player_tank.SetPosition(position);
         
-        const float distance = glm::distance(old_position,  position);
-        camera_->MoveForward(-distance);
+        camera_pos.x += TANK_SPEED * delta_time * sin(player_tank.GetBodyRotation());
+        camera_pos.z += TANK_SPEED * delta_time * cos(player_tank.GetBodyRotation());
+        camera_->SetPosition(camera_pos);
     }
     
     if (window->KeyHold(GLFW_KEY_A)) {
         player_tank.SetBodyRotation(player_tank.GetBodyRotation() + 1 * delta_time);
-        camera_->RotateThirdOY(1 * delta_time, player_tank.GetPosition());
+        camera_->RotateThirdOY(TANK_ROTATION_SPEED * delta_time, player_tank.GetPosition());
     }
     
     if (window->KeyHold(GLFW_KEY_D)) {
         player_tank.SetBodyRotation(player_tank.GetBodyRotation() - 1 * delta_time);
-        camera_->RotateThirdOY(-1 * delta_time, player_tank.GetPosition());
+        camera_->RotateThirdOY(-TANK_ROTATION_SPEED * delta_time, player_tank.GetPosition());
     }
 }
 
@@ -166,7 +198,31 @@ void RenderingEngine::OnKeyPress(int key, int mods) {}
 
 void RenderingEngine::OnKeyRelease(int key, int mods) {}
 
-void RenderingEngine::OnMouseMove(int mouse_x, int mouse_y, int delta_x, int delta_y) {}
+void RenderingEngine::OnMouseMove(int mouse_x, int mouse_y, int delta_x, int delta_y) {
+    // std::cout << "-----------------------------\n";
+    // std::cout << "mouse_x: " << mouse_x << '\n';
+    // std::cout << "mouse_y: " << mouse_y << '\n';
+    // std::cout << "delta_x: " << delta_x << '\n';
+    // std::cout << "delta_y: " << delta_y << '\n';
+    
+
+    Tank &player_tank = logic_engine_.GetPlayerTank();
+    
+    if (window->MouseHold(GLFW_MOUSE_BUTTON_RIGHT)) {
+        camera_->RotateThirdOY(-delta_x * MOUSE_SENSITIVITY, logic_engine_.GetPlayerTank().GetPosition());
+
+        player_tank.SetTurretRotation(player_tank.GetTurretRotation() - delta_x * MOUSE_SENSITIVITY);
+        
+        camera_->SetRotationAngleOy(camera_->GetRotationAngleOy() - delta_x * MOUSE_SENSITIVITY);
+        
+    } else {
+        float turret_rotation = utils::liner_conversion(mouse_x, viewport_.x, viewport_.x + viewport_.width, RADIANS(90), RADIANS(-90));
+        
+        player_tank.SetTurretRotation(camera_->GetRotationAngleOy() + turret_rotation);
+        
+    }
+    
+}
 
 void RenderingEngine::OnMouseBtnPress(int mouse_x, int mouse_y, int button, int mods) {
     if (button == GLFW_MOUSE_BUTTON_2) {
@@ -188,7 +244,13 @@ void RenderingEngine::OnMouseBtnRelease(int mouse_x, int mouse_y, int button, in
 
 void RenderingEngine::OnMouseScroll(int mouse_x, int mouse_y, int offset_x, int offset_y) {}
 
-void RenderingEngine::OnWindowResize(int width, int height) {}
+void RenderingEngine::OnWindowResize(int width, int height) {
+    // Tank &player_tank = logic_engine_.GetPlayerTank();
+    // float turret_rotation = player_tank.GetTurretRotation();
+    //
+    // turret_rotation += -MOUSE_SENSITIVITY * (width - window->GetResolution().x);
+    // player_tank.SetTurretRotation(turret_rotation);
+}
 
 
 // -------------------- Rendering ---------------------
@@ -222,6 +284,7 @@ void RenderingEngine::RenderTanks() {
         // Render turret
         glm::mat4 model_matrix = glm::mat4(1);
         model_matrix = glm::translate(model_matrix, player_tank.GetPosition());
+        // std::cout << player_tank.GetTurretRotation();
         model_matrix = glm::rotate(model_matrix, player_tank.GetBodyRotation() + player_tank.GetTurretRotation(), glm::vec3(0, 1, 0));
         CustomRenderMesh(meshes["turret"], shaders["world_of_tanks_shader"], model_matrix, TANK_TURRET_COLOR);
     }

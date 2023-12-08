@@ -2,6 +2,7 @@
 
 #include "camera.h"
 #include "logic_engine.h"
+#include "utils.h"
 #include "components/simple_scene.h"
 
 namespace world_of_tanks {
@@ -9,6 +10,7 @@ namespace world_of_tanks {
 	private:
 		LogicEngine logic_engine_;
 		Camera *camera_;
+		utils::Viewport viewport_;
     public:
         RenderingEngine() = default;
         
@@ -19,7 +21,8 @@ namespace world_of_tanks {
 
     private:
         void FrameStart() override;
-        void Update(float delta_time_seconds) override;
+		void SetViewport();
+		void Update(float delta_time_seconds) override;
         void RenderTanks();
 		void RenderMap();
 		void RenderProjectiles();
