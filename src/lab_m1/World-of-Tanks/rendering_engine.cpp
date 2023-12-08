@@ -1,9 +1,10 @@
 #include "rendering_engine.h"
 
+#include <iostream>
+
 #include "constants.h"
 
 using namespace world_of_tanks;
-using namespace std;
 
 // ------------------ Initialization ------------------
 
@@ -44,9 +45,14 @@ void RenderingEngine::LoadMeshes() {
     }
 
     {
-        // load terrain
         Mesh* mesh = new Mesh("terrain");
         mesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "plane50.obj");
+        meshes[mesh->GetMeshID()] = mesh;
+    }
+
+    {
+        Mesh *mesh = new Mesh("projectile");
+        mesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "sphere.obj");
         meshes[mesh->GetMeshID()] = mesh;
     }
 }
@@ -106,25 +112,27 @@ void RenderingEngine::FrameStart() {
     glViewport(0, 0, resolution.x, resolution.y);
 }
 
-void RenderingEngine::Update(float delta_time_seconds) {
-    RenderMap();
-    RenderTanks();
+void RenderingEngine::Update(const float delta_time_seconds) {
+    RenderScene();
+    logic_engine_.Update(delta_time_seconds);
 }
 
-void RenderingEngine::FrameEnd() {}
+void RenderingEngine::FrameEnd() {
+    // DrawCoordinateSystem(camera_->GetViewMatrix(), camera_->GetProjectionMatrix());
+}
 
 
 // ---------------------- Inputs ----------------------
 
 void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
     // Player Movement - update player tank position and rotation
-    Tank player_tank = logic_engine_.GetPlayerTank();
+    Tank &player_tank = logic_engine_.GetPlayerTank();
     if (window->KeyHold(GLFW_KEY_W)) {
         const glm::vec3 old_position = player_tank.GetPosition();
         glm::vec3 position = player_tank.GetPosition();
         
-        position.x -= 1 * delta_time * sin(player_tank.GetBodyRotation());
-        position.z -= 1 * delta_time * cos(player_tank.GetBodyRotation());
+        position.x -= TANK_SPEED * delta_time * sin(player_tank.GetBodyRotation());
+        position.z -= TANK_SPEED * delta_time * cos(player_tank.GetBodyRotation());
         player_tank.SetPosition(position);
         
         const float distance = glm::distance(old_position,  position);
@@ -135,8 +143,8 @@ void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
         const glm::vec3 old_position = player_tank.GetPosition();
         glm::vec3 position = player_tank.GetPosition();
         
-        position.x += 1 * delta_time * sin(player_tank.GetBodyRotation());
-        position.z += 1 * delta_time * cos(player_tank.GetBodyRotation());
+        position.x += TANK_SPEED * delta_time * sin(player_tank.GetBodyRotation());
+        position.z += TANK_SPEED * delta_time * cos(player_tank.GetBodyRotation());
         player_tank.SetPosition(position);
         
         const float distance = glm::distance(old_position,  position);
@@ -152,8 +160,6 @@ void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
         player_tank.SetBodyRotation(player_tank.GetBodyRotation() - 1 * delta_time);
         camera_->RotateThirdOY(-1 * delta_time, player_tank.GetPosition());
     }
-    
-    logic_engine_.SetPlayerTank(player_tank);
 }
 
 void RenderingEngine::OnKeyPress(int key, int mods) {}
@@ -162,7 +168,21 @@ void RenderingEngine::OnKeyRelease(int key, int mods) {}
 
 void RenderingEngine::OnMouseMove(int mouse_x, int mouse_y, int delta_x, int delta_y) {}
 
-void RenderingEngine::OnMouseBtnPress(int mouse_x, int mouse_y, int button, int mods) {}
+void RenderingEngine::OnMouseBtnPress(int mouse_x, int mouse_y, int button, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_2) {
+        // std::cout << logic_engine_.GetPlayerTank().GetReloadTimer() << "";
+        if (logic_engine_.GetPlayerTank().GetReloadTimer() <= 0.0f) {
+            logic_engine_.GetPlayerTank().FireProjectile(logic_engine_.GetProjectiles());
+            logic_engine_.GetPlayerTank().SetReloadTimer(DEFAULT_RELOAD_TIMER);
+        }
+
+        // std::cout << "Projectiles UPTIME:\n";
+        // for (auto projectile : logic_engine_.GetProjectiles())
+        //     std::cout << projectile.GetTime() << " ";
+        //
+        // std::cout << "\n";
+    }
+}
 
 void RenderingEngine::OnMouseBtnRelease(int mouse_x, int mouse_y, int button, int mods) {}
 
@@ -172,6 +192,12 @@ void RenderingEngine::OnWindowResize(int width, int height) {}
 
 
 // -------------------- Rendering ---------------------
+
+void RenderingEngine::RenderScene() {
+    RenderMap();
+    RenderTanks();
+    RenderProjectiles();
+}
 
 void RenderingEngine::RenderTanks() {
     Tank player_tank = logic_engine_.GetPlayerTank();
@@ -211,12 +237,24 @@ void RenderingEngine::RenderTanks() {
 
 void RenderingEngine::RenderMap() {
     // Render ground
-    {
+    for (int i = -10; i <= 10; i++)
+        for (int j = -10; j <= 10; j++) {
+            glm::mat4 model_matrix = glm::mat4(1);
+            model_matrix = glm::translate(model_matrix, glm::vec3(4 * i, -0.51f, 4 * j));
+            model_matrix = glm::scale(model_matrix, glm::vec3(0.08f, 1, 0.08f));
+            if ((i + j) % 2 == 0) {
+                CustomRenderMesh(meshes["terrain"], shaders["world_of_tanks_shader"], model_matrix, TERRAIN_COLOR_1);
+            } else {
+                CustomRenderMesh(meshes["terrain"], shaders["world_of_tanks_shader"], model_matrix, TERRAIN_COLOR_2);
+            }
+        }
+}
+
+void RenderingEngine::RenderProjectiles() {
+    for (auto projectile : logic_engine_.GetProjectiles()) {
         glm::mat4 model_matrix = glm::mat4(1);
-        model_matrix = glm::translate(model_matrix, glm::vec3(0, -0.51f, 0));
-        // RenderMesh(meshes["terrain"], shaders["Simple"], model_matrix);
-        CustomRenderMesh(meshes["terrain"], shaders["world_of_tanks_shader"], model_matrix, TERRAIN_COLOR);
-
-
+        model_matrix = glm::translate(model_matrix, projectile.GetPosition());
+        model_matrix = glm::scale(model_matrix, glm::vec3(0.2f, 0.2f, 0.2f));
+        CustomRenderMesh(meshes["projectile"], shaders["world_of_tanks_shader"], model_matrix, PROJECTILE_COLOR);
     }
 }
