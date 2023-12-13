@@ -4,16 +4,23 @@
 
 using namespace world_of_tanks;
 
+void LogicEngine::Init() {
+    // set seed
+    srand(time(NULL));
+
+    // map_.InitMap();
+}
+
 void LogicEngine::Update(float delta_time) {
     // update player tank reload time
-    if (player_tank_.GetReloadTimer() > 0.0f) {
-        player_tank_.SetReloadTimer(player_tank_.GetReloadTimer() - delta_time);
-    }
+    player_tank_.GetReloadTimer().UpdateTimer(delta_time);
 
     // update projectiles
     for (auto &projectile : projectiles_) {
         projectile.UpdateProjectile(delta_time);
     }
+
+    tank_spawner_.UpdateTankSpawner(delta_time, enemy_tanks_);
 
     DespawnObjects();
 }
@@ -23,7 +30,7 @@ void LogicEngine::DespawnObjects() {
     projectiles_.erase(std::remove_if(projectiles_.begin(),
                                       projectiles_.end(),
                                       [](const Projectile &projectile) {
-                                          return projectile.GetTime() >= PROJECTILE_TIME_LIMIT;
+                                          return projectile.GetTimer().IsFinished();
                                       }),
                        projectiles_.end());
 }
