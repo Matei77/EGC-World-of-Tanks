@@ -23,7 +23,7 @@ namespace world_of_tanks {
 
         explicit Tank(const glm::vec3 position) : position_(position) {}
 
-        void FireProjectile(std::vector<Projectile> &projectiles);
+        void FireProjectile(std::vector<Projectile> &projectiles, float speed);
         void CheckIfHit(std::vector<Projectile> &projectiles);
         inline bool CheckTurretHit(glm::vec3 projectile_pos);
 

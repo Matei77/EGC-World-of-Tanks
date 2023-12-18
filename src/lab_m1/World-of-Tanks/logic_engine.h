@@ -16,22 +16,23 @@ namespace world_of_tanks {
         Map map_;
         TankSpawner tank_spawner_;
         Timer game_timer_ = Timer(GAME_TIMER);
-        int tanks_destoryed_ = 0;
+        int tanks_destroyed_ = 0;
+        bool game_over_ = false;
+
+        void DespawnObjects();
+        void CheckForPlayerTankCollision(Camera *camera);
+        void CheckEnemyTanksCollisions();
+        void CheckProjectileBuildingCollisions();
 
     public:
         void Init();
         void Update(float delta_time, Camera *camera);
-        void DespawnObjects();
-        void CheckForPlayerTankCollision(Camera *camera);
-        void CheckEnemyTanksCollisions();
 
         Tank & GetPlayerTank() { return player_tank_; }
-        // void SetPlayerTank(const Tank &player_tank) { player_tank_ = player_tank; }
         const std::vector<EnemyTank> & GetEnemyTanks() const { return enemy_tanks_; }
-        // void SetEnemyTanks(const std::vector<Tank> &enemy_tanks) { enemy_tanks_ = enemy_tanks; }
         std::vector<Projectile> & GetProjectiles() { return projectiles_; }
-        // void SetProjectiles(const std::vector<Projectile> &projectiles) { projectiles_ = projectiles; }
         const Map & GetMap() const { return map_; }
         const Timer & GetGameTimer() const { return game_timer_; }
+        bool IsGameOver() const { return game_over_; }
     };
 }

@@ -5,14 +5,19 @@
 #include "utils/math_utils.h"
 
 namespace world_of_tanks {
-    constexpr float TANK_SPAWN_TIME = 2.0f;
-    constexpr int MAX_ENEMY_NUM = 20;
+    constexpr float TANK_SPAWN_TIME = 3.0f;
+    constexpr int MAX_ENEMY_NUM = 15;
     
     constexpr float TANK_SPEED = 3.0f;
     constexpr int TANK_HEALTH = 5;
     constexpr float TANK_RELOAD_TIMER = 1.0f;
     constexpr float TANK_ROTATION_SPEED = 1.0f;
+    constexpr float TURRET_ROTATION_SPEED = 1.0f;
+    
     constexpr float ENEMY_INITIAL_MOVE_TIMER = 2.0f;
+    constexpr float ENEMY_ATTACK_RADIUS = 20.0f;
+    constexpr float ENEMY_RELOAD_TIME = 2.0f;
+    constexpr float ENEMY_PROJECTILE_SPEED = 10.0f;
     
     constexpr float PROJECTILE_SPEED = 30.0f;
     constexpr float PROJECTILE_OFFSET_UP = 0.55f;

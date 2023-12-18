@@ -163,7 +163,7 @@ void RenderingEngine::FrameStart() {
 }
 
 void RenderingEngine::Update(const float delta_time_seconds) {
-    if (logic_engine_.GetGameTimer().IsFinished()) {
+    if (logic_engine_.IsGameOver() == true) {
         RenderGameOver();
         return;
     }
@@ -268,7 +268,7 @@ void RenderingEngine::OnMouseBtnPress(int mouse_x, int mouse_y, int button, int 
     if (button == GLFW_MOUSE_BUTTON_2) {
         // std::cout << logic_engine_.GetPlayerTank().GetReloadTimer() << "";
         if (logic_engine_.GetPlayerTank().GetReloadTimer().IsFinished()) {
-            logic_engine_.GetPlayerTank().FireProjectile(logic_engine_.GetProjectiles());
+            logic_engine_.GetPlayerTank().FireProjectile(logic_engine_.GetProjectiles(), PROJECTILE_SPEED);
             logic_engine_.GetPlayerTank().GetReloadTimer().ResetTimer();
         }
 
@@ -401,13 +401,19 @@ void RenderingEngine::RenderMap() {
 
     // Render buildings
     for (auto building : logic_engine_.GetMap().GetBuildings()) {
-        // if (glm::distance(camera_->GetPosition(), building.GetPosition()) > glm::max(building.GetHeight(), building.GetLength())) {
-        glm::mat4 model_matrix = glm::mat4(1);
-        model_matrix = glm::translate(model_matrix, building.GetPosition());
-        model_matrix = glm::scale(model_matrix,
-                                  glm::vec3(building.GetWidth(), building.GetHeight(), building.GetLength()));
-        CustomRenderMesh(meshes["building"], shaders["world_of_tanks_shader"], model_matrix, BUILDING_COLOR);
-        // }
+        float closest_x = std::max(building.GetPosition().x - building.GetHalfWidth(),
+                                   std::min(camera_->GetPosition().x,
+                                            building.GetPosition().x + building.GetHalfWidth()));
+        float closest_z = std::max(building.GetPosition().z - building.GetHalfLength(),
+                                   std::min(camera_->GetPosition().z,
+                                            building.GetPosition().z + building.GetHalfLength()));
+        if (!(closest_x == camera_->GetPosition().x && closest_z == camera_->GetPosition().z)) {
+            glm::mat4 model_matrix = glm::mat4(1);
+            model_matrix = glm::translate(model_matrix, building.GetPosition());
+            model_matrix = glm::scale(model_matrix,
+                                      glm::vec3(building.GetHalfWidth() * 2, building.GetHalfHeight() * 2, building.GetHalfLength() * 2));
+            CustomRenderMesh(meshes["building"], shaders["world_of_tanks_shader"], model_matrix, BUILDING_COLOR);
+        }
     }
 }
 

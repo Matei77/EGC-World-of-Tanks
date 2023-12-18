@@ -11,12 +11,14 @@ namespace world_of_tanks {
         float fired_rotation_y_;
         Timer timer_ = Timer(PROJECTILE_TIME_LIMIT);
         bool hit_ = false;
-    
+        float speed_;
+
     public:
-        Projectile(glm::vec3 position, float fired_rotation_y) : position_(position), fired_rotation_y_(fired_rotation_y) {}
+        Projectile(const glm::vec3 position, const float fired_rotation_y, const float speed) : position_(position),
+            fired_rotation_y_(fired_rotation_y), speed_(speed) {}
 
         void UpdateProjectile(float delta_time);
-        
+
         glm::vec3 GetPosition() const { return position_; }
         void SetPosition(const glm::vec3 position) { position_ = position; }
         float GetRotationY() const { return fired_rotation_y_; }
