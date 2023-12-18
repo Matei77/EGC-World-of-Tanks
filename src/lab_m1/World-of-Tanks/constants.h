@@ -5,22 +5,35 @@
 #include "utils/math_utils.h"
 
 namespace world_of_tanks {
+    constexpr float TANK_SPAWN_TIME = 2.0f;
+    constexpr int MAX_ENEMY_NUM = 20;
+    
     constexpr float TANK_SPEED = 3.0f;
-    constexpr float TANK_SPAWN_TIME = 5.0f;
-    constexpr int TANK_HEALTH = 3;
-    constexpr float TANK_RELOAD_TIMER = 0.5f;
+    constexpr int TANK_HEALTH = 5;
+    constexpr float TANK_RELOAD_TIMER = 1.0f;
     constexpr float TANK_ROTATION_SPEED = 1.0f;
-    constexpr float PROJECTILE_SPEED = 10.0f;
+    constexpr float ENEMY_INITIAL_MOVE_TIMER = 2.0f;
+    
+    constexpr float PROJECTILE_SPEED = 30.0f;
     constexpr float PROJECTILE_OFFSET_UP = 0.55f;
     constexpr float PROJECTILE_OFFSET_FORWARD = -1.9f;
     constexpr float PROJECTILE_TIME_LIMIT = 7.0f;
-    constexpr int MAP_SIZE = 20;
+
+    constexpr int GRID_NUMBER = 20;
+    constexpr int MAP_SIZE = GRID_NUMBER * 4;
     constexpr float MIN_BUILDING_SIZE = 3.5f;
     constexpr int MAX_BUILDING_SIZE = 10;
     constexpr int MIN_BUILDING_NUM = 4;
     constexpr int MAX_BUILDING_NUM = 15;
     constexpr float MAP_Y_OFFSET = 0.5f;
-    constexpr int MAX_ENEMY_NUM = 10;
+
+    constexpr float GAME_TIMER = 120.0f;
+
+    constexpr float TURRET_RADIUS = 0.6f;
+    constexpr float PROJECTILE_RADIUS = 0.2f;
+    constexpr float CANNON_HALF_LENGTH = 0.95f;
+    constexpr float CANNON_RADIUS = 0.2f;
+    constexpr float TANK_RADIUS = 1.6f;
 
     constexpr float ASPECT_HEIGHT = 9.0f;
     constexpr float ASPECT_WIDTH = 16.0f;
@@ -48,5 +61,14 @@ namespace world_of_tanks {
     const glm::vec3 BACKGROUND_COLOR = NormalizedRGB(41, 185, 217);
     const glm::vec3 SCREEN_CUT_COLOR = NormalizedRGB(0, 0, 0);
     const glm::vec3 BUILDING_COLOR = NormalizedRGB(117, 115, 115);
+
+    enum MoveList {
+        FORWARD,
+        BACK,
+        ROTATE_LEFT,
+        ROTATE_RIGHT,
+        STAND,
+        MOVES_NR
+    };
     
 }

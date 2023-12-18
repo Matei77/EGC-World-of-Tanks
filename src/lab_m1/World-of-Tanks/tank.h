@@ -2,6 +2,7 @@
 #include <vector>
 #include <glm/vec3.hpp>
 
+#include "camera.h"
 #include "constants.h"
 #include "projectile.h"
 #include "timer.h"
@@ -15,14 +16,16 @@ namespace world_of_tanks {
         float turret_rotation_ = 0.0f;
         float cannon_rotation_ = 0.0f;
         Timer reload_timer_ = Timer(TANK_RELOAD_TIMER);
-        float health_ = TANK_HEALTH;
+        int health_ = TANK_HEALTH;
         
     public:
         Tank () = default;
-        
-        Tank(const glm::vec3 position) : position_(position) {}
+
+        explicit Tank(const glm::vec3 position) : position_(position) {}
 
         void FireProjectile(std::vector<Projectile> &projectiles);
+        void CheckIfHit(std::vector<Projectile> &projectiles);
+        inline bool CheckTurretHit(glm::vec3 projectile_pos);
 
         glm::vec3 GetPosition() const { return position_; }
         void SetPosition(const glm::vec3 position) { position_ = position; }
@@ -34,5 +37,6 @@ namespace world_of_tanks {
         void SetBodyRotation(const float body_rotation) { body_rotation_ = body_rotation; }
         Timer & GetReloadTimer() { return reload_timer_; }
         void SetReloadTimer(const float reload_timer) { this->reload_timer_ = reload_timer; }
+        int GetHealth() const { return health_; }
     };
 }

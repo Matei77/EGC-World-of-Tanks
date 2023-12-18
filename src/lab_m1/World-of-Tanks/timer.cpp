@@ -14,3 +14,8 @@ void Timer::ResetTimer() {
     time_elapsed_ = 0;
     finished_ = false;
 }
+
+void Timer::SetNewTimeAndReset(const float period) {
+    period_ = period;
+    ResetTimer();
+}

@@ -2,8 +2,12 @@
 
 #include <iostream>
 
+#include "building.h"
+#include "building.h"
 #include "constants.h"
 #include "utils.h"
+#include "components/camera.h"
+#include "components/camera.h"
 
 using namespace world_of_tanks;
 
@@ -57,17 +61,22 @@ void RenderingEngine::LoadMeshes() {
         mesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "sphere.obj");
         meshes[mesh->GetMeshID()] = mesh;
     }
-    
+
     {
         Mesh *mesh = new Mesh("building");
         mesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "box.obj");
+        meshes[mesh->GetMeshID()] = mesh;
+    }
+
+    {
+        Mesh *mesh = new Mesh("game_over");
+        mesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "world_of_tanks"), "game-over.obj");
         meshes[mesh->GetMeshID()] = mesh;
     }
 }
 
 void RenderingEngine::SetViewport() {
     // Sets the screen area where to draw
-
     const glm::ivec2 resolution = window->GetResolution();
     viewport_.width = resolution.x;
     viewport_.height = resolution.y;
@@ -102,7 +111,7 @@ void RenderingEngine::CreateShader() {
 }
 
 void RenderingEngine::CustomRenderMesh(const Mesh *mesh, const Shader *shader, const glm::mat4 &model_matrix,
-                                       const glm::vec3 &color) const {
+                                       const glm::vec3 &color, const int hp = TANK_HEALTH) const {
     if (!mesh || !shader || !shader->GetProgramID())
         return;
 
@@ -110,6 +119,12 @@ void RenderingEngine::CustomRenderMesh(const Mesh *mesh, const Shader *shader, c
 
     const int object_color_loc = glGetUniformLocation(shader->program, "object_color");
     glUniform3fv(object_color_loc, 1, glm::value_ptr(color));
+
+    const int hp_loc = glGetUniformLocation(shader->program, "hp");
+    glUniform1i(hp_loc, hp);
+
+    const int max_hp_loc = glGetUniformLocation(shader->program, "max_hp");
+    glUniform1i(max_hp_loc, TANK_HEALTH);
 
     // Bind model matrix
     const int model_matrix_loc = glGetUniformLocation(shader->program, "model");
@@ -148,8 +163,12 @@ void RenderingEngine::FrameStart() {
 }
 
 void RenderingEngine::Update(const float delta_time_seconds) {
+    if (logic_engine_.GetGameTimer().IsFinished()) {
+        RenderGameOver();
+        return;
+    }
     RenderScene();
-    logic_engine_.Update(delta_time_seconds);
+    logic_engine_.Update(delta_time_seconds, camera_);
 }
 
 void RenderingEngine::FrameEnd() {
@@ -162,7 +181,21 @@ void RenderingEngine::FrameEnd() {
 void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
     // Player Movement - update player tank position and rotation
     Tank &player_tank = logic_engine_.GetPlayerTank();
-    if (window->KeyHold(GLFW_KEY_W)) {
+    if (window->KeyHold(GLFW_KEY_W) && window->KeyHold(GLFW_KEY_SPACE)) {
+        glm::vec3 camera_pos = camera_->GetPosition();
+        glm::vec3 position = player_tank.GetPosition();
+
+        position.x -= TANK_SPEED * 3 * delta_time * sin(player_tank.GetBodyRotation());
+        position.z -= TANK_SPEED * 3 * delta_time * cos(player_tank.GetBodyRotation());
+        player_tank.SetPosition(position);
+
+        camera_pos.x -= TANK_SPEED * 3 * delta_time * sin(player_tank.GetBodyRotation());
+        camera_pos.z -= TANK_SPEED * 3 * delta_time * cos(player_tank.GetBodyRotation());
+        camera_->SetPosition(camera_pos);
+
+        // const float distance = glm::distance(old_position,  position);
+        // camera_->MoveForward(distance);
+    } else if (window->KeyHold(GLFW_KEY_W)) {
         glm::vec3 camera_pos = camera_->GetPosition();
         glm::vec3 position = player_tank.GetPosition();
 
@@ -177,8 +210,7 @@ void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
         // const float distance = glm::distance(old_position,  position);
         // camera_->MoveForward(distance);
     }
-
-
+    
     if (window->KeyHold(GLFW_KEY_S)) {
         glm::vec3 camera_pos = camera_->GetPosition();
         glm::vec3 position = player_tank.GetPosition();
@@ -277,7 +309,8 @@ void RenderingEngine::RenderTanks() {
         glm::mat4 model_matrix = glm::mat4(1);
         model_matrix = glm::translate(model_matrix, player_tank.GetPosition());
         model_matrix = glm::rotate(model_matrix, player_tank.GetBodyRotation(), glm::vec3(0, 1, 0));
-        CustomRenderMesh(meshes["body"], shaders["world_of_tanks_shader"], model_matrix, TANK_BODY_COLOR);
+        CustomRenderMesh(meshes["body"], shaders["world_of_tanks_shader"], model_matrix, TANK_BODY_COLOR,
+                         player_tank.GetHealth());
     }
 
     {
@@ -285,17 +318,18 @@ void RenderingEngine::RenderTanks() {
         glm::mat4 model_matrix = glm::mat4(1);
         model_matrix = glm::translate(model_matrix, player_tank.GetPosition());
         model_matrix = glm::rotate(model_matrix, player_tank.GetBodyRotation(), glm::vec3(0, 1, 0));
-        CustomRenderMesh(meshes["tracks"], shaders["world_of_tanks_shader"], model_matrix, TANK_TRACKS_COLOR);
+        CustomRenderMesh(meshes["tracks"], shaders["world_of_tanks_shader"], model_matrix, TANK_TRACKS_COLOR,
+                         player_tank.GetHealth());
     }
 
     {
         // Render turret
         glm::mat4 model_matrix = glm::mat4(1);
         model_matrix = glm::translate(model_matrix, player_tank.GetPosition());
-        // std::cout << player_tank.GetTurretRotation();
         model_matrix = glm::rotate(model_matrix, player_tank.GetBodyRotation() + player_tank.GetTurretRotation(),
                                    glm::vec3(0, 1, 0));
-        CustomRenderMesh(meshes["turret"], shaders["world_of_tanks_shader"], model_matrix, TANK_TURRET_COLOR);
+        CustomRenderMesh(meshes["turret"], shaders["world_of_tanks_shader"], model_matrix, TANK_TURRET_COLOR,
+                         player_tank.GetHealth());
     }
 
     {
@@ -304,7 +338,8 @@ void RenderingEngine::RenderTanks() {
         model_matrix = glm::translate(model_matrix, player_tank.GetPosition());
         model_matrix = glm::rotate(model_matrix, player_tank.GetBodyRotation() + player_tank.GetTurretRotation(),
                                    glm::vec3(0, 1, 0));
-        CustomRenderMesh(meshes["cannon"], shaders["world_of_tanks_shader"], model_matrix, TANK_CANNON_COLOR);
+        CustomRenderMesh(meshes["cannon"], shaders["world_of_tanks_shader"], model_matrix, TANK_CANNON_COLOR,
+                         player_tank.GetHealth());
     }
 
     // Render enemy tanks
@@ -314,7 +349,8 @@ void RenderingEngine::RenderTanks() {
             glm::mat4 model_matrix = glm::mat4(1);
             model_matrix = glm::translate(model_matrix, enemy_tank.GetPosition());
             model_matrix = glm::rotate(model_matrix, enemy_tank.GetBodyRotation(), glm::vec3(0, 1, 0));
-            CustomRenderMesh(meshes["body"], shaders["world_of_tanks_shader"], model_matrix, ENEMY_TANK_BODY_COLOR);
+            CustomRenderMesh(meshes["body"], shaders["world_of_tanks_shader"], model_matrix, ENEMY_TANK_BODY_COLOR,
+                             enemy_tank.GetHealth());
         }
 
         {
@@ -322,17 +358,18 @@ void RenderingEngine::RenderTanks() {
             glm::mat4 model_matrix = glm::mat4(1);
             model_matrix = glm::translate(model_matrix, enemy_tank.GetPosition());
             model_matrix = glm::rotate(model_matrix, enemy_tank.GetBodyRotation(), glm::vec3(0, 1, 0));
-            CustomRenderMesh(meshes["tracks"], shaders["world_of_tanks_shader"], model_matrix, ENEMY_TANK_TRACKS_COLOR);
+            CustomRenderMesh(meshes["tracks"], shaders["world_of_tanks_shader"], model_matrix, ENEMY_TANK_TRACKS_COLOR,
+                             enemy_tank.GetHealth());
         }
 
         {
             // Render turret
             glm::mat4 model_matrix = glm::mat4(1);
             model_matrix = glm::translate(model_matrix, enemy_tank.GetPosition());
-            // std::cout << enemy_tank.GetTurretRotation();
             model_matrix = glm::rotate(model_matrix, enemy_tank.GetBodyRotation() + enemy_tank.GetTurretRotation(),
                                        glm::vec3(0, 1, 0));
-            CustomRenderMesh(meshes["turret"], shaders["world_of_tanks_shader"], model_matrix, ENEMY_TANK_TURRET_COLOR);
+            CustomRenderMesh(meshes["turret"], shaders["world_of_tanks_shader"], model_matrix, ENEMY_TANK_TURRET_COLOR,
+                             enemy_tank.GetHealth());
         }
 
         {
@@ -341,15 +378,16 @@ void RenderingEngine::RenderTanks() {
             model_matrix = glm::translate(model_matrix, enemy_tank.GetPosition());
             model_matrix = glm::rotate(model_matrix, enemy_tank.GetBodyRotation() + enemy_tank.GetTurretRotation(),
                                        glm::vec3(0, 1, 0));
-            CustomRenderMesh(meshes["cannon"], shaders["world_of_tanks_shader"], model_matrix, ENEMY_TANK_CANNON_COLOR);
+            CustomRenderMesh(meshes["cannon"], shaders["world_of_tanks_shader"], model_matrix, ENEMY_TANK_CANNON_COLOR,
+                             enemy_tank.GetHealth());
         }
     }
 }
 
 void RenderingEngine::RenderMap() {
     // Render ground
-    for (int i = -MAP_SIZE / 2; i <= MAP_SIZE / 2; i++)
-        for (int j = -MAP_SIZE / 2; j <= MAP_SIZE / 2; j++) {
+    for (int i = -GRID_NUMBER / 2; i <= GRID_NUMBER / 2; i++)
+        for (int j = -GRID_NUMBER / 2; j <= GRID_NUMBER / 2; j++) {
             glm::mat4 model_matrix = glm::mat4(1);
             model_matrix = glm::translate(model_matrix, glm::vec3(4 * i, -0.51f, 4 * j));
             model_matrix = glm::scale(model_matrix, glm::vec3(0.08f, 1, 0.08f));
@@ -366,7 +404,8 @@ void RenderingEngine::RenderMap() {
         // if (glm::distance(camera_->GetPosition(), building.GetPosition()) > glm::max(building.GetHeight(), building.GetLength())) {
         glm::mat4 model_matrix = glm::mat4(1);
         model_matrix = glm::translate(model_matrix, building.GetPosition());
-        model_matrix = glm::scale(model_matrix, glm::vec3(building.GetWidth(), building.GetHeight(), building.GetLength()));
+        model_matrix = glm::scale(model_matrix,
+                                  glm::vec3(building.GetWidth(), building.GetHeight(), building.GetLength()));
         CustomRenderMesh(meshes["building"], shaders["world_of_tanks_shader"], model_matrix, BUILDING_COLOR);
         // }
     }
@@ -379,4 +418,12 @@ void RenderingEngine::RenderProjectiles() {
         model_matrix = glm::scale(model_matrix, glm::vec3(0.2f, 0.2f, 0.2f));
         CustomRenderMesh(meshes["projectile"], shaders["world_of_tanks_shader"], model_matrix, PROJECTILE_COLOR);
     }
+}
+
+void RenderingEngine::RenderGameOver() {
+    glm::mat4 model_matrix = glm::mat4(1);
+    model_matrix = glm::translate(model_matrix, logic_engine_.GetPlayerTank().GetPosition());
+    model_matrix = glm::rotate(model_matrix, logic_engine_.GetPlayerTank().GetBodyRotation(), glm::vec3(0, 1, 0));
+    model_matrix = glm::rotate(model_matrix, RADIANS(25.0f), glm::vec3(1, 0, 0));
+    CustomRenderMesh(meshes["game_over"], shaders["world_of_tanks_shader"], model_matrix, PROJECTILE_COLOR);
 }

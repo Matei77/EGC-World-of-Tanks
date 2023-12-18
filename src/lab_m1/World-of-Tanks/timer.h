@@ -12,7 +12,8 @@ namespace world_of_tanks {
         
         void UpdateTimer(float delta_time);
         void ResetTimer();
-    
+        void SetNewTimeAndReset(float period);
+
         bool IsFinished() const { return finished_; }
     };
 }
