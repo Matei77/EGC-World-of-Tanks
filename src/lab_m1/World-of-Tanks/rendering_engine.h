@@ -39,7 +39,8 @@ namespace world_of_tanks {
         void OnWindowResize(int width, int height) override;
 		void RenderScene();
 
-		void CustomRenderMesh(const ::Mesh *mesh, const ::Shader *shader, const glm::mat4 & model_matrix, const glm::vec3 & color, const int hp) const;
+		void CustomRenderMesh(const ::Mesh *mesh, const ::Shader *shader, const glm::mat4 & model_matrix, const glm::vec3 & color, const int hp, const
+		                      float alpha) const;
 		
 	};
 }

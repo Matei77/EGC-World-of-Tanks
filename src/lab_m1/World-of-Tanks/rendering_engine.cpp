@@ -18,6 +18,9 @@ void RenderingEngine::Init() {
     LoadMeshes();
     CreateShader();
     logic_engine_.Init();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void RenderingEngine::InitCamera() {
@@ -111,11 +114,15 @@ void RenderingEngine::CreateShader() {
 }
 
 void RenderingEngine::CustomRenderMesh(const Mesh *mesh, const Shader *shader, const glm::mat4 &model_matrix,
-                                       const glm::vec3 &color, const int hp = TANK_HEALTH) const {
+                                       const glm::vec3 &color, const int hp = TANK_HEALTH,
+                                       const float alpha = 1.0f) const {
     if (!mesh || !shader || !shader->GetProgramID())
         return;
 
     glUseProgram(shader->program);
+
+    const int alpha_loc = glGetUniformLocation(shader->program, "alpha");
+    glUniform1f(alpha_loc, alpha);
 
     const int object_color_loc = glGetUniformLocation(shader->program, "object_color");
     glUniform3fv(object_color_loc, 1, glm::value_ptr(color));
@@ -195,7 +202,8 @@ void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
 
         // const float distance = glm::distance(old_position,  position);
         // camera_->MoveForward(distance);
-    } else if (window->KeyHold(GLFW_KEY_W)) {
+    }
+    else if (window->KeyHold(GLFW_KEY_W)) {
         glm::vec3 camera_pos = camera_->GetPosition();
         glm::vec3 position = player_tank.GetPosition();
 
@@ -210,7 +218,7 @@ void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
         // const float distance = glm::distance(old_position,  position);
         // camera_->MoveForward(distance);
     }
-    
+
     if (window->KeyHold(GLFW_KEY_S)) {
         glm::vec3 camera_pos = camera_->GetPosition();
         glm::vec3 position = player_tank.GetPosition();
@@ -296,9 +304,9 @@ void RenderingEngine::OnWindowResize(int width, int height) {
 // -------------------- Rendering ---------------------
 
 void RenderingEngine::RenderScene() {
-    RenderMap();
     RenderTanks();
     RenderProjectiles();
+    RenderMap();
 }
 
 void RenderingEngine::RenderTanks() {
@@ -400,19 +408,34 @@ void RenderingEngine::RenderMap() {
         }
 
     // Render buildings
-    for (auto building : logic_engine_.GetMap().GetBuildings()) {
+    glm::vec3 camera_pos = camera_->GetPosition();
+    std::vector<Building> buildings = logic_engine_.GetMap().GetBuildings();
+    std::sort(buildings.begin(), buildings.end(),
+              [&camera_pos](const Building &b1, const Building &b2) {
+                  return glm::distance(b1.GetPosition(), camera_pos) > glm::distance(
+                      b2.GetPosition(), camera_pos);
+              });
+
+    for (auto building : buildings) {
         float closest_x = std::max(building.GetPosition().x - building.GetHalfWidth(),
                                    std::min(camera_->GetPosition().x,
                                             building.GetPosition().x + building.GetHalfWidth()));
         float closest_z = std::max(building.GetPosition().z - building.GetHalfLength(),
                                    std::min(camera_->GetPosition().z,
                                             building.GetPosition().z + building.GetHalfLength()));
+
+        glm::mat4 model_matrix = glm::mat4(1);
+        model_matrix = glm::translate(model_matrix, building.GetPosition());
+        model_matrix = glm::scale(model_matrix,
+                                  glm::vec3(building.GetHalfWidth() * 2, building.GetHalfHeight() * 2,
+                                            building.GetHalfLength() * 2));
+
         if (!(closest_x == camera_->GetPosition().x && closest_z == camera_->GetPosition().z)) {
-            glm::mat4 model_matrix = glm::mat4(1);
-            model_matrix = glm::translate(model_matrix, building.GetPosition());
-            model_matrix = glm::scale(model_matrix,
-                                      glm::vec3(building.GetHalfWidth() * 2, building.GetHalfHeight() * 2, building.GetHalfLength() * 2));
             CustomRenderMesh(meshes["building"], shaders["world_of_tanks_shader"], model_matrix, BUILDING_COLOR);
+        }
+        else {
+            CustomRenderMesh(meshes["building"], shaders["world_of_tanks_shader"], model_matrix, BUILDING_COLOR,
+                             TANK_HEALTH, 0.5f);
         }
     }
 }
