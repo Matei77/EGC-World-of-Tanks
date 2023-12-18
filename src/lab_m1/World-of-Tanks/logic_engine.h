@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 
+#include "camera.h"
 #include "enemy_tank.h"
 #include "map.h"
 #include "projectile.h"

@@ -25,15 +25,6 @@ void Map::InitMap() {
             }
         }
 
-        // float x_pos = (rand() % (MAP_SIZE / 2 * 10)) / 10 + 7;
-        // float z_pos = (rand() % (MAP_SIZE / 2 * 10)) / 10 + 7;
-        //
-        // float rand_sign = rand() % 2;
-        // x_pos = rand_sign == 0 ? x_pos : -x_pos;
-        //
-        // rand_sign = rand() % 2;
-        // z_pos = rand_sign == 0 ? z_pos : -z_pos;
-
         glm::vec3 position = glm::vec3(x_pos, height / 2 - MAP_Y_OFFSET, z_pos);
 
             

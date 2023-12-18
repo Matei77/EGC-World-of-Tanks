@@ -7,26 +7,30 @@ namespace world_of_tanks {
             int y;
             int width;
             int height;
-            
+
             Viewport() : x(0), y(0), width(1), height(1) {}
+
             Viewport(const int x, const int y, const int width, const int height)
                 : x(x), y(y), width(width), height(height) {}
         };
 
-        
-        inline float liner_conversion(float value, float min, float max, float new_min, float new_max) {
-            float new_value = 0;
+
+        inline float LinerConversion(float value, const float min, const float max, const float new_min,
+                                     const float new_max) {
+            float new_value;
 
             if (value > max) {
                 value = max;
-            } else if (value < min) {
+            }
+            else if (value < min) {
                 value = min;
             }
 
             const float range = (max - min);
             if (range == 0.0f) {
                 new_value = new_min;
-            } else {
+            }
+            else {
                 const float new_range = (new_max - new_min);
                 new_value = (((value - min) * new_range) / range) + new_min;
             }

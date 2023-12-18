@@ -1,7 +1,7 @@
+#include <glm/ext/matrix_clip_space.hpp>
+
 #include "camera.h"
 #include "components/camera.h"
-
-#include <glm/ext/matrix_clip_space.hpp>
 
 using namespace world_of_tanks;
 
@@ -24,10 +24,9 @@ void Camera::MoveForward(float distance) {
 }
 
 void Camera::RotateFirstOY(const float angle) {
-    
     const glm::vec4 new_forward = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0, 1, 0)) * glm::vec4(forward_, 1);
     forward_ = glm::normalize(glm::vec3(new_forward));
-            
+
     const glm::vec4 new_right = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0, 1, 0)) * glm::vec4(right_, 1);
     right_ = glm::normalize(glm::vec3(new_right));
 
@@ -35,12 +34,12 @@ void Camera::RotateFirstOY(const float angle) {
 }
 
 void Camera::RotateThirdOY(const float angle, glm::vec3 player_tank_position) {
-    float distance = glm::distance(glm::vec2(player_tank_position.x, player_tank_position.z), glm::vec2(position_.x, position_.z));
-    
+    float distance = glm::distance(glm::vec2(player_tank_position.x, player_tank_position.z),
+                                   glm::vec2(position_.x, position_.z));
+
     MoveForward(distance);
     RotateFirstOY(angle);
     MoveForward(-distance);
-    
 }
 
 glm::mat4 Camera::GetViewMatrix() const {

@@ -1,13 +1,7 @@
 #include "rendering_engine.h"
-
-#include <iostream>
-
-#include "building.h"
 #include "building.h"
 #include "constants.h"
 #include "utils.h"
-#include "components/camera.h"
-#include "components/camera.h"
 
 using namespace world_of_tanks;
 
@@ -19,6 +13,7 @@ void RenderingEngine::Init() {
     CreateShader();
     logic_engine_.Init();
 
+    // enable transparent objects
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
@@ -104,7 +99,7 @@ void RenderingEngine::SetViewport() {
 // --------------------- Shaders ----------------------
 
 void RenderingEngine::CreateShader() {
-    Shader *shader = new Shader("world_of_tanks_shader");
+    auto *shader = new Shader("world_of_tanks_shader");
     shader->AddShader(PATH_JOIN(window->props.selfDir, SOURCE_PATH::M1, "World-of-Tanks", "shaders",
                                 "vertex_shader.glsl"), GL_VERTEX_SHADER);
     shader->AddShader(PATH_JOIN(window->props.selfDir, SOURCE_PATH::M1, "World-of-Tanks", "shaders",
@@ -178,9 +173,7 @@ void RenderingEngine::Update(const float delta_time_seconds) {
     logic_engine_.Update(delta_time_seconds, camera_);
 }
 
-void RenderingEngine::FrameEnd() {
-    // DrawCoordinateSystem(camera_->GetViewMatrix(), camera_->GetProjectionMatrix());
-}
+void RenderingEngine::FrameEnd() {}
 
 
 // ---------------------- Inputs ----------------------
@@ -199,10 +192,8 @@ void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
         camera_pos.x -= TANK_SPEED * 3 * delta_time * sin(player_tank.GetBodyRotation());
         camera_pos.z -= TANK_SPEED * 3 * delta_time * cos(player_tank.GetBodyRotation());
         camera_->SetPosition(camera_pos);
-
-        // const float distance = glm::distance(old_position,  position);
-        // camera_->MoveForward(distance);
     }
+
     else if (window->KeyHold(GLFW_KEY_W)) {
         glm::vec3 camera_pos = camera_->GetPosition();
         glm::vec3 position = player_tank.GetPosition();
@@ -214,9 +205,6 @@ void RenderingEngine::OnInputUpdate(float delta_time, int mods) {
         camera_pos.x -= TANK_SPEED * delta_time * sin(player_tank.GetBodyRotation());
         camera_pos.z -= TANK_SPEED * delta_time * cos(player_tank.GetBodyRotation());
         camera_->SetPosition(camera_pos);
-
-        // const float distance = glm::distance(old_position,  position);
-        // camera_->MoveForward(distance);
     }
 
     if (window->KeyHold(GLFW_KEY_S)) {
@@ -248,25 +236,22 @@ void RenderingEngine::OnKeyPress(int key, int mods) {}
 void RenderingEngine::OnKeyRelease(int key, int mods) {}
 
 void RenderingEngine::OnMouseMove(int mouse_x, int mouse_y, int delta_x, int delta_y) {
-    // std::cout << "-----------------------------\n";
-    // std::cout << "mouse_x: " << mouse_x << '\n';
-    // std::cout << "mouse_y: " << mouse_y << '\n';
-    // std::cout << "delta_x: " << delta_x << '\n';
-    // std::cout << "delta_y: " << delta_y << '\n';
-
-
     Tank &player_tank = logic_engine_.GetPlayerTank();
 
     if (window->MouseHold(GLFW_MOUSE_BUTTON_RIGHT)) {
-        camera_->RotateThirdOY(-delta_x * MOUSE_SENSITIVITY, logic_engine_.GetPlayerTank().GetPosition());
+        camera_->RotateThirdOY(static_cast<float>(-delta_x) * MOUSE_SENSITIVITY,
+                               logic_engine_.GetPlayerTank().GetPosition());
 
-        player_tank.SetTurretRotation(player_tank.GetTurretRotation() - delta_x * MOUSE_SENSITIVITY);
+        player_tank.
+                SetTurretRotation(player_tank.GetTurretRotation() - static_cast<float>(delta_x) * MOUSE_SENSITIVITY);
 
-        camera_->SetRotationAngleOy(camera_->GetRotationAngleOy() - delta_x * MOUSE_SENSITIVITY);
+        camera_->SetRotationAngleOy(camera_->GetRotationAngleOy() - static_cast<float>(delta_x) * MOUSE_SENSITIVITY);
     }
     else {
-        float turret_rotation = utils::liner_conversion(mouse_x, viewport_.x, viewport_.x + viewport_.width,
-                                                        RADIANS(90), RADIANS(-90));
+        const float turret_rotation = utils::LinerConversion(static_cast<float>(mouse_x),
+                                                              static_cast<float>(viewport_.x),
+                                                              static_cast<float>(viewport_.x + viewport_.width),
+                                                              RADIANS(90), RADIANS(-90));
 
         player_tank.SetTurretRotation(camera_->GetRotationAngleOy() + turret_rotation);
     }
@@ -274,17 +259,10 @@ void RenderingEngine::OnMouseMove(int mouse_x, int mouse_y, int delta_x, int del
 
 void RenderingEngine::OnMouseBtnPress(int mouse_x, int mouse_y, int button, int mods) {
     if (button == GLFW_MOUSE_BUTTON_2) {
-        // std::cout << logic_engine_.GetPlayerTank().GetReloadTimer() << "";
         if (logic_engine_.GetPlayerTank().GetReloadTimer().IsFinished()) {
             logic_engine_.GetPlayerTank().FireProjectile(logic_engine_.GetProjectiles(), PROJECTILE_SPEED);
             logic_engine_.GetPlayerTank().GetReloadTimer().ResetTimer();
         }
-
-        // std::cout << "Projectiles UPTIME:\n";
-        // for (auto projectile : logic_engine_.GetProjectiles())
-        //     std::cout << projectile.GetTime() << " ";
-        //
-        // std::cout << "\n";
     }
 }
 
@@ -292,13 +270,7 @@ void RenderingEngine::OnMouseBtnRelease(int mouse_x, int mouse_y, int button, in
 
 void RenderingEngine::OnMouseScroll(int mouse_x, int mouse_y, int offset_x, int offset_y) {}
 
-void RenderingEngine::OnWindowResize(int width, int height) {
-    // Tank &player_tank = logic_engine_.GetPlayerTank();
-    // float turret_rotation = player_tank.GetTurretRotation();
-    //
-    // turret_rotation += -MOUSE_SENSITIVITY * (width - window->GetResolution().x);
-    // player_tank.SetTurretRotation(turret_rotation);
-}
+void RenderingEngine::OnWindowResize(int width, int height) {}
 
 
 // -------------------- Rendering ---------------------
@@ -311,7 +283,7 @@ void RenderingEngine::RenderScene() {
 
 void RenderingEngine::RenderTanks() {
     // Render player tank
-    Tank player_tank = logic_engine_.GetPlayerTank();
+    const Tank player_tank = logic_engine_.GetPlayerTank();
     {
         // Render body
         glm::mat4 model_matrix = glm::mat4(1);

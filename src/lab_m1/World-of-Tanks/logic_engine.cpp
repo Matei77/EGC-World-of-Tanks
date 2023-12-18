@@ -141,10 +141,6 @@ void LogicEngine::CheckForPlayerTankCollision(Camera *camera) {
 
         // check for collision
         if (distance < TANK_RADIUS) {
-            // std::cout << "player building collision\n";
-            // std::cout << "building pos_x: " << building.GetPosition().x << "\n";
-            // std::cout << "building pos_z: " << building.GetPosition().z << "\n";
-            
             float penetration_depth = TANK_RADIUS - distance;
             
             direction_x /= distance;
@@ -156,9 +152,6 @@ void LogicEngine::CheckForPlayerTankCollision(Camera *camera) {
             
             new_player_pos.x += penetration_depth * direction_x;
             new_player_pos.z += penetration_depth * direction_z;
-            // std::cout << "new_player_pos_x:" << new_player_pos.x << '\n';
-            // std::cout << "new_player_pos_z:" << new_player_pos.z << '\n';
-            // std::cout << "new_player_pos_y:" << new_player_pos.y << '\n';
 
             new_camera_pos.x += penetration_depth * direction_x;
             new_camera_pos.z += penetration_depth * direction_z;

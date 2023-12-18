@@ -2,11 +2,9 @@
 #include <vector>
 #include <glm/vec3.hpp>
 
-#include "camera.h"
 #include "constants.h"
 #include "projectile.h"
 #include "timer.h"
-#include "utils/math_utils.h"
 
 namespace world_of_tanks {
     class Tank {
@@ -23,9 +21,9 @@ namespace world_of_tanks {
 
         explicit Tank(const glm::vec3 position) : position_(position) {}
 
-        void FireProjectile(std::vector<Projectile> &projectiles, float speed);
+        void FireProjectile(std::vector<Projectile> &projectiles, float speed) const;
         void CheckIfHit(std::vector<Projectile> &projectiles);
-        inline bool CheckTurretHit(glm::vec3 projectile_pos);
+        inline bool CheckTurretHit(glm::vec3 projectile_pos) const;
 
         glm::vec3 GetPosition() const { return position_; }
         void SetPosition(const glm::vec3 position) { position_ = position; }

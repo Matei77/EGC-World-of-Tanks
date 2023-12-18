@@ -12,7 +12,6 @@ layout(location = 0) out vec4 out_color;
 void main()
 {   
     vec3 damaged_color;
-//    vec3 color = (object_color.r, object_color.g, object_color.b);
 
     damaged_color = object_color * pow(0.7f, max_hp - hp);
     
